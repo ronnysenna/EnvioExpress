@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/serverAuth";
-import { stripe } from "@/lib/stripe";
+import { getStripeInstance } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Se for upgrade/downgrade de plano pago
     if (currentSubscription.stripeSubscriptionId && newPlan.stripePriceId) {
+      const stripe = getStripeInstance();
       const stripeSubscription = await stripe.subscriptions.retrieve(
         currentSubscription.stripeSubscriptionId
       );
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Se for downgrade para free
     if (currentSubscription.stripeSubscriptionId && !newPlan.stripePriceId) {
+      const stripe = getStripeInstance();
       await stripe.subscriptions.cancel(
         currentSubscription.stripeSubscriptionId
       );
