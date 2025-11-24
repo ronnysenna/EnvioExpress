@@ -4,10 +4,15 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getErrorMessage } from "@/lib/utils";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not set");
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is not set");
+  }
+  return secret;
 }
+
+const JWT_SECRET = getJWTSecret();
 
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
 const IS_PROD = process.env.NODE_ENV === "production";

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/serverAuth";
-import { getUsageStats, PlanLimits } from "@/lib/planLimits";
+import { getUsageStats, type PlanLimits } from "@/lib/planLimits";
 import { getErrorMessage } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 
@@ -32,7 +32,7 @@ export async function GET() {
       );
     }
 
-    const limits = subscription.plan.limits as PlanLimits;
+    const limits = subscription.plan.limits as any;
     const usage = await getUsageStats(tenant.id);
 
     // Calcular porcentagens de uso
@@ -40,15 +40,17 @@ export async function GET() {
       contacts:
         limits.contacts === "unlimited"
           ? 0
-          : Math.round((usage.contacts / limits.contacts) * 100),
+          : Math.round((usage.contacts / (limits.contacts as number)) * 100),
       monthlyMessages:
         limits.monthlyMessages === "unlimited"
           ? 0
-          : Math.round((usage.monthlyMessages / limits.monthlyMessages) * 100),
+          : Math.round(
+              (usage.monthlyMessages / (limits.monthlyMessages as number)) * 100
+            ),
       users:
         limits.users === "unlimited"
           ? 0
-          : Math.round((usage.users / limits.users) * 100),
+          : Math.round((usage.users / (limits.users as number)) * 100),
       groups:
         limits.groups === "unlimited"
           ? 0

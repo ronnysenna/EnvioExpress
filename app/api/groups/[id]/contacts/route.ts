@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireUser } from "@/lib/serverAuth";
+import { requireAuth } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 
 type NextContextWithParams = {
@@ -10,15 +10,15 @@ type NextContextWithParams = {
 export async function POST(_req: Request, context: NextContextWithParams) {
   const params = await (context?.params ?? ({} as { id: string }));
   try {
-    const user = await requireUser();
-    const groupId = parseInt(params.id, 10);
+    const { tenant } = await requireAuth();
+    const groupId = params.id;
     const body = await _req.json();
     const { contactIds } = body;
 
     if (!Array.isArray(contactIds)) {
       return NextResponse.json(
         { error: "contactIds deve ser um array" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -28,16 +28,16 @@ export async function POST(_req: Request, context: NextContextWithParams) {
     if (!group)
       return NextResponse.json(
         { error: "Grupo não encontrado" },
-        { status: 404 },
+        { status: 404 }
       );
-    if (group.userId !== user.id)
+    if (group.tenantId !== tenant.id)
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
-    // Verificar se todos os contatos pertencem ao usuário
+    // Verificar se todos os contatos pertencem ao tenant
     const contacts = await prisma.contact.findMany({
       where: {
         id: { in: contactIds },
-        userId: user.id,
+        tenantId: tenant.id,
       },
     });
 
@@ -47,7 +47,7 @@ export async function POST(_req: Request, context: NextContextWithParams) {
           error:
             "Alguns contatos não foram encontrados ou não pertencem a você",
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(_req: Request, context: NextContextWithParams) {
     // Adicionar novos contatos
     if (contactIds.length > 0) {
       await prisma.contactGroup.createMany({
-        data: contactIds.map((contactId: number) => ({
+        data: contactIds.map((contactId: string) => ({
           groupId,
           contactId,
         })),

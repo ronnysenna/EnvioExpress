@@ -57,7 +57,7 @@ export async function checkPlanLimits(
       return { allowed: false, error: "Assinatura inativa ou não encontrada" };
     }
 
-    const limits = subscription.plan.limits as PlanLimits;
+    const limits = subscription.plan.limits as any;
     const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
 
     // Buscar estatísticas de uso atuais
@@ -271,7 +271,7 @@ export async function hasFeature(
       return false;
     }
 
-    const limits = subscription.plan.limits as PlanLimits;
+    const limits = subscription.plan.limits as any;
     return limits.features?.includes(feature) || false;
   } catch {
     return false;
