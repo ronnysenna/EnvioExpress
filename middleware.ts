@@ -32,9 +32,23 @@ function verifyJWT(token: string) {
 const publicRoutes = [
   "/login",
   "/register",
+  "/welcome",
+  "/plans",
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/switch-tenant",
+];
+
+// Rotas que requerem verificação de trial
+const trialProtectedRoutes = [
+  "/api/contacts",
+  "/api/groups",
+  "/api/messages",
+  "/api/images",
+  "/contacts",
+  "/groups",
+  "/messages",
+  "/campaigns",
 ];
 
 export function middleware(request: NextRequest) {
@@ -66,6 +80,15 @@ export function middleware(request: NextRequest) {
   response.headers.set("x-user-id", payload.userId);
   response.headers.set("x-tenant-id", payload.currentTenantId);
   response.headers.set("x-user-email", payload.email);
+
+  // Verificar se a rota requer verificação de trial
+  const needsTrialCheck = trialProtectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  if (needsTrialCheck) {
+    response.headers.set("x-requires-trial-check", "true");
+  }
 
   return response;
 }

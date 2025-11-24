@@ -226,6 +226,10 @@ model Subscription {
   status               SubscriptionStatus @default(ACTIVE)
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
+  // Trial fields
+  trialStartsAt        DateTime?
+  trialEndsAt          DateTime?
+  isTrialUsed          Boolean            @default(false)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -319,6 +323,7 @@ enum PlanInterval {
 }
 
 enum SubscriptionStatus {
+  TRIAL
   ACTIVE
   CANCELLED
   PAST_DUE

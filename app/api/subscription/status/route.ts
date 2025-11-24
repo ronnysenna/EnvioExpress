@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/serverAuth";
-import { getUsageStats, type PlanLimits } from "@/lib/planLimits";
-import { getErrorMessage } from "@/lib/utils";
+import { getUsageStats } from "@/lib/planLimits";
+import { getTrialInfo } from "@/lib/trial";
 import prisma from "@/lib/prisma";
 
 export async function GET() {
@@ -25,14 +25,59 @@ export async function GET() {
       },
     });
 
+    // Buscar informações de trial
+    const trialInfo = await getTrialInfo(tenant.id);
+
     if (!subscription) {
-      return NextResponse.json(
-        { error: "Assinatura não encontrada" },
-        { status: 404 }
-      );
+      // Se não há assinatura, retornar plano Free por padrão
+      const freePlan = await prisma.plan.findFirst({
+        where: { name: "Free" },
+      });
+
+      if (!freePlan) {
+        return NextResponse.json(
+          { error: "Plano Free não encontrado" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        id: null,
+        status: "INACTIVE",
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+        plan: {
+          id: freePlan.id,
+          name: freePlan.name,
+          description: freePlan.description,
+          price: freePlan.price,
+          currency: freePlan.currency,
+          interval: freePlan.interval,
+          features: freePlan.features,
+          limits: freePlan.limits,
+        },
+        trial: trialInfo,
+        usage: {
+          contacts: 0,
+          monthlyMessages: 0,
+          users: 1,
+          groups: 0,
+          images: 0,
+          currentPeriod: new Date().toISOString().slice(0, 7),
+        },
+        usagePercentages: {
+          contacts: 0,
+          monthlyMessages: 0,
+          users: 0,
+          groups: 0,
+          images: 0,
+        },
+        warnings: [],
+        isNearingLimits: false,
+      });
     }
 
-    const limits = subscription.plan.limits as any;
+    const limits = subscription.plan.limits as Record<string, any>;
     const usage = await getUsageStats(tenant.id);
 
     // Calcular porcentagens de uso
@@ -85,12 +130,17 @@ export async function GET() {
         features: subscription.plan.features,
         limits,
       },
+      trial: trialInfo,
       usage,
       usagePercentages,
       warnings,
       isNearingLimits: warnings.length > 0,
     });
   } catch (err) {
-    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
+    console.error("Erro ao buscar status da assinatura:", err);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    );
   }
 }

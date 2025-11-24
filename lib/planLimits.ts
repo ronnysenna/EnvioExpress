@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/serverAuth";
+import { canAccessPremiumFeatures } from "@/lib/trial";
 
 export interface PlanLimits {
   contacts: number;
@@ -53,11 +54,23 @@ export async function checkPlanLimits(
       include: { plan: true },
     });
 
-    if (!subscription || subscription.status !== "ACTIVE") {
-      return { allowed: false, error: "Assinatura inativa ou não encontrada" };
+    // Verificar se tem acesso (assinatura ativa ou trial válido)
+    const hasAccess = await canAccessPremiumFeatures(finalTenantId);
+
+    if (!subscription) {
+      return { allowed: false, error: "Assinatura não encontrada" };
     }
 
-    const limits = subscription.plan.limits as any;
+    // Se não tem acesso (trial expirado e sem assinatura paga)
+    if (!hasAccess) {
+      return {
+        allowed: false,
+        error:
+          "Trial expirado. Atualize seu plano para continuar usando o sistema.",
+      };
+    }
+
+    const limits = subscription.plan.limits as Record<string, any>;
     const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
 
     // Buscar estatísticas de uso atuais
@@ -170,7 +183,13 @@ export async function incrementUsage(
       },
     });
 
-    const updates: any = {};
+    const updates: Partial<{
+      contactsCount: number;
+      messagesCount: number;
+      groupsCount: number;
+      imagesCount: number;
+      apiRequests: number;
+    }> = {};
 
     // Determinar qual campo atualizar baseado na métrica
     switch (metric) {

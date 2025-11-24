@@ -24,9 +24,18 @@ interface Plan {
     popular?: boolean;
 }
 
+interface TrialInfo {
+    isOnTrial: boolean;
+    trialDaysRemaining: number;
+    trialEndsAt: string | null;
+    hasTrialExpired: boolean;
+    canAccessFeatures: boolean;
+}
+
 interface Subscription {
     plan: Plan;
     status: string;
+    trial?: TrialInfo;
 }
 
 export default function PlansPage() {
@@ -47,12 +56,20 @@ export default function PlansPage() {
 
             // Buscar assinatura atual
             const subscriptionResponse = await fetch('/api/subscription/status');
-            const subscriptionData = await subscriptionResponse.json();
+
+            if (subscriptionResponse.ok) {
+                const subscriptionData = await subscriptionResponse.json();
+                console.log('Subscription data:', subscriptionData);
+                setCurrentSubscription(subscriptionData);
+            } else {
+                console.log('No subscription found, using free plan');
+                setCurrentSubscription(null);
+            }
 
             setPlans(plansData);
-            setCurrentSubscription(subscriptionData);
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
+            setCurrentSubscription(null);
         } finally {
             setLoading(false);
         }
@@ -153,19 +170,45 @@ export default function PlansPage() {
                         Comece grátis e evolua conforme sua necessidade.
                     </p>
 
+                    {/* Status da assinatura atual */}
                     {currentSubscription && (
-                        <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="text-sm font-medium">
-                                Plano atual: {currentSubscription.plan.name}
-                            </span>
-                            {currentSubscription.plan.name !== 'Free' && (
-                                <button
-                                    onClick={openCustomerPortal}
-                                    className="ml-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
-                                >
-                                    Gerenciar
-                                </button>
+                        <div className="mt-6 max-w-2xl mx-auto">
+                            {currentSubscription.trial?.isOnTrial ? (
+                                <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg shadow-lg">
+                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                        <Zap className="h-5 w-5" />
+                                        <span className="font-semibold">Trial Ativo</span>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm opacity-90">
+                                            {currentSubscription.trial.trialDaysRemaining > 0
+                                                ? `${currentSubscription.trial.trialDaysRemaining} dias restantes`
+                                                : 'Trial expirado'
+                                            }
+                                        </p>
+                                        {currentSubscription.trial.trialDaysRemaining > 0 && (
+                                            <p className="text-xs mt-1 opacity-75">
+                                                Aproveite todos os recursos premium gratuitamente!
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : currentSubscription.plan && (
+                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border">
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span className="text-sm font-medium">
+                                        Plano atual: {currentSubscription.plan.name}
+                                    </span>
+                                    {currentSubscription.plan.name !== 'Free' && (
+                                        <button
+                                            type="button"
+                                            onClick={openCustomerPortal}
+                                            className="text-xs text-blue-600 hover:text-blue-800 ml-2"
+                                        >
+                                            Gerenciar assinatura
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
