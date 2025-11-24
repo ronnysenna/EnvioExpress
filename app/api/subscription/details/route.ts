@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/serverAuth";
-import { getTrialInfo } from "@/lib/trial";
+import { getTrialInfo, type TrialInfo } from "@/lib/trial";
 import prisma from "@/lib/prisma";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -48,11 +48,9 @@ export async function GET() {
         ...trialInfo,
         // Adicionar informações formatadas
         trialStartedAt: subscription?.trialStartsAt,
-        trialEndDate: trialInfo.trialEndsAt
-          ? new Date(trialInfo.trialEndsAt)
-          : null,
+        trialEndDate: trialInfo.trialEndsAt ? trialInfo.trialEndsAt : null,
         timeRemaining: trialInfo.trialEndsAt
-          ? formatDistanceToNow(new Date(trialInfo.trialEndsAt), {
+          ? formatDistanceToNow(trialInfo.trialEndsAt, {
               addSuffix: true,
               locale: ptBR,
             })
@@ -69,14 +67,6 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
-
-interface TrialInfo {
-  isOnTrial: boolean;
-  trialDaysRemaining: number;
-  trialEndsAt: string | null;
-  hasTrialExpired: boolean;
-  canAccessFeatures: boolean;
 }
 
 interface SubscriptionData {

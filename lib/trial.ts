@@ -14,7 +14,7 @@ export interface TrialInfo {
 /**
  * Inicia o trial para um tenant recém-criado
  */
-export async function startTrial(tenantId: string): Promise<void> {
+export async function startTrial(tenantId: string) {
   const trialStartsAt = new Date();
   const trialEndsAt = addDays(trialStartsAt, TRIAL_DAYS);
 
@@ -28,7 +28,7 @@ export async function startTrial(tenantId: string): Promise<void> {
   }
 
   // Atualizar ou criar assinatura com dados de trial
-  await prisma.subscription.upsert({
+  const subscription = await prisma.subscription.upsert({
     where: { tenantId },
     update: {
       status: "TRIAL",
@@ -45,6 +45,8 @@ export async function startTrial(tenantId: string): Promise<void> {
       isTrialUsed: true,
     },
   });
+
+  return subscription;
 }
 
 /**

@@ -5,13 +5,13 @@ import prisma from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
     const { user } = await requireAuth();
 
     // Check if user is admin (you might want to add an admin role check here)
-    const tenantId = params.tenantId;
+    const { tenantId } = await params;
 
     if (!tenantId) {
       return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(
     // Verify tenant exists
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      include: { subscription: true }
+      include: { subscription: true },
     });
 
     if (!tenant) {
@@ -35,14 +35,18 @@ export async function POST(
 
     // Check if tenant already has an active subscription or trial
     if (tenant.subscription) {
-      if (tenant.subscription.status === 'ACTIVE') {
+      if (tenant.subscription.status === "ACTIVE") {
         return NextResponse.json(
           { error: "Tenant já possui assinatura ativa" },
           { status: 400 }
         );
       }
 
-      if (tenant.subscription.status === 'TRIAL' && tenant.subscription.trialEndsAt && tenant.subscription.trialEndsAt > new Date()) {
+      if (
+        tenant.subscription.status === "TRIAL" &&
+        tenant.subscription.trialEndsAt &&
+        tenant.subscription.trialEndsAt > new Date()
+      ) {
         return NextResponse.json(
           { error: "Tenant já possui trial ativo" },
           { status: 400 }
@@ -68,15 +72,15 @@ export async function POST(
         tenantId: subscription.tenantId,
         status: subscription.status,
         trialStartsAt: subscription.trialStartsAt,
-        trialEndsAt: subscription.trialEndsAt
-      }
+        trialEndsAt: subscription.trialEndsAt,
+      },
     });
   } catch (error) {
     console.error("Erro ao iniciar trial para tenant:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Erro interno do servidor",
-        details: error instanceof Error ? error.message : "Erro desconhecido"
+        details: error instanceof Error ? error.message : "Erro desconhecido",
       },
       { status: 500 }
     );
