@@ -13,12 +13,12 @@ interface Plan {
     interval: string;
     features: string[];
     limits: {
-        contacts: number | 'unlimited';
-        monthlyMessages: number | 'unlimited';
-        users: number | 'unlimited';
-        groups: number | 'unlimited';
-        images: number | 'unlimited';
-        automations?: number | 'unlimited';
+        contacts: number | 'unlimited' | null;
+        monthlyMessages: number | 'unlimited' | null;
+        users: number | 'unlimited' | null;
+        groups: number | 'unlimited' | null;
+        images: number | 'unlimited' | null;
+        automations?: number | 'unlimited' | null;
     };
     stripePriceId?: string;
     popular?: boolean;
@@ -111,8 +111,9 @@ export default function PlansPage() {
         }
     };
 
-    const formatLimit = (value: number | 'unlimited'): string => {
+    const formatLimit = (value: number | 'unlimited' | null | undefined): string => {
         if (value === 'unlimited') return 'Ilimitado';
+        if (value === null || value === undefined || typeof value !== 'number') return '0';
         return value.toLocaleString('pt-BR');
     };
 
@@ -180,10 +181,10 @@ export default function PlansPage() {
                             <div
                                 key={plan.id}
                                 className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 hover:shadow-xl ${isCurrentPlan
-                                        ? 'border-green-500 ring-2 ring-green-200'
-                                        : isPopular
-                                            ? 'border-blue-500 ring-2 ring-blue-200'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-green-500 ring-2 ring-green-200'
+                                    : isPopular
+                                        ? 'border-blue-500 ring-2 ring-blue-200'
+                                        : 'border-gray-200 hover:border-gray-300'
                                     }`}
                             >
                                 {isPopular && !isCurrentPlan && (
@@ -280,10 +281,10 @@ export default function PlansPage() {
                                         onClick={() => handleSelectPlan(plan.id, plan.name)}
                                         disabled={isCurrentPlan || upgrading === plan.id}
                                         className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${isCurrentPlan
-                                                ? 'bg-green-100 text-green-800 cursor-default'
-                                                : isPopular
-                                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
-                                                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                                            ? 'bg-green-100 text-green-800 cursor-default'
+                                            : isPopular
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                                                : 'bg-gray-900 text-white hover:bg-gray-800'
                                             }`}
                                     >
                                         {upgrading === plan.id ? (
