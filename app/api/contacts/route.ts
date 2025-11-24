@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAuth, getTenantId } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 import { checkPlanLimits, incrementUsage } from "@/lib/planLimits";
+import { trackEvent, EventNames } from "@/lib/analytics";
 
 export async function GET(req: Request) {
   try {
@@ -46,7 +47,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await requireAuth(); // Verificar autenticação
+    const { user } = await requireAuth(); // Verificar autenticação e obter usuário
     const tenantId = await getTenantId(); // Obter tenant ID
 
     // Verificar limites do plano ANTES de criar o contato
@@ -89,6 +90,18 @@ export async function POST(req: Request) {
         where: { id: existing.id },
         data: { nome, email },
       });
+
+      // Track event de atualização
+      await trackEvent({
+        name: EventNames.CONTACT_UPDATED,
+        tenantId,
+        userId: user.id,
+        properties: {
+          contactId: updated.id,
+          hasEmail: !!email,
+        },
+      });
+
       return NextResponse.json({ contact: updated });
     }
 
@@ -103,6 +116,17 @@ export async function POST(req: Request) {
 
     // Incrementar contador de contatos para este tenant
     await incrementUsage(tenantId, "contacts", 1);
+
+    // Track event de criação
+    await trackEvent({
+      name: EventNames.CONTACT_CREATED,
+      tenantId,
+      userId: user.id,
+      properties: {
+        contactId: created.id,
+        hasEmail: !!email,
+      },
+    });
 
     return NextResponse.json({ contact: created });
   } catch (err) {

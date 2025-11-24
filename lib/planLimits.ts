@@ -160,24 +160,58 @@ export async function incrementUsage(
   const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
 
   try {
-    await prisma.usageMetric.upsert({
+    // Buscar ou criar registro de métricas para o período atual
+    const existingMetrics = await prisma.usageMetrics.findUnique({
       where: {
-        tenantId_metric_period: {
+        tenantId_period: {
           tenantId,
-          metric,
           period: currentPeriod,
         },
       },
-      update: {
-        value: {
-          increment: value,
+    });
+
+    const updates: any = {};
+
+    // Determinar qual campo atualizar baseado na métrica
+    switch (metric) {
+      case "contacts":
+        updates.contactsCount = (existingMetrics?.contactsCount || 0) + value;
+        break;
+      case "messages":
+        updates.messagesCount = (existingMetrics?.messagesCount || 0) + value;
+        break;
+      case "groups":
+        updates.groupsCount = (existingMetrics?.groupsCount || 0) + value;
+        break;
+      case "images":
+        updates.imagesCount = (existingMetrics?.imagesCount || 0) + value;
+        break;
+      case "api_requests":
+        updates.apiRequests = (existingMetrics?.apiRequests || 0) + value;
+        break;
+      default:
+        console.warn(`Métrica desconhecida: ${metric}`);
+        return;
+    }
+
+    await prisma.usageMetrics.upsert({
+      where: {
+        tenantId_period: {
+          tenantId,
+          period: currentPeriod,
         },
       },
+      update: updates,
       create: {
         tenantId,
-        metric,
         period: currentPeriod,
-        value,
+        contactsCount: metric === "contacts" ? value : 0,
+        messagesCount: metric === "messages" ? value : 0,
+        groupsCount: metric === "groups" ? value : 0,
+        imagesCount: metric === "images" ? value : 0,
+        usersCount: 0,
+        apiRequests: metric === "api_requests" ? value : 0,
+        storageUsed: BigInt(0),
       },
     });
   } catch (error) {
@@ -217,17 +251,16 @@ async function getMonthlyMessageCount(
   tenantId: string,
   period: string
 ): Promise<number> {
-  const usage = await prisma.usageMetric.findUnique({
+  const usage = await prisma.usageMetrics.findUnique({
     where: {
-      tenantId_metric_period: {
+      tenantId_period: {
         tenantId,
-        metric: "messages",
         period,
       },
     },
   });
 
-  return usage?.value || 0;
+  return usage?.messagesCount || 0;
 }
 
 /**

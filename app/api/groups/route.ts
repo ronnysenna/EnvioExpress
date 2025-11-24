@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 import { checkPlanLimits, incrementUsage } from "@/lib/planLimits";
+import { trackEvent, EventNames } from "@/lib/analytics";
 
 export async function GET(req: Request) {
   try {
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { tenant } = await requireAuth();
+    const { tenant, user } = await requireAuth();
     const tenantId = tenant.id;
 
     // Verificar limites do plano ANTES de criar o grupo
@@ -96,6 +97,18 @@ export async function POST(req: Request) {
 
     // Incrementar contador de grupos para este tenant
     await incrementUsage(tenantId, "groups", 1);
+
+    // Track event de criação de grupo
+    await trackEvent({
+      name: EventNames.GROUP_CREATED,
+      tenantId,
+      userId: user.id,
+      properties: {
+        groupId: created.id,
+        groupName: created.nome,
+        hasDescription: !!created.descricao,
+      },
+    });
 
     return NextResponse.json({ group: created });
   } catch (err) {

@@ -9,6 +9,7 @@ import {
   Users,
   X,
   CreditCard,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +19,7 @@ const menuItems = [
   { href: "/enviar", label: "Enviar Mensagem", icon: Send },
   { href: "/contatos", label: "Contatos", icon: Users },
   { href: "/grupos", label: "Grupos", icon: Tags },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/imagem", label: "Upload de Imagem", icon: ImageIcon },
   { href: "/plans", label: "Planos e Cobrança", icon: CreditCard },
   // Nota: a página de upload de imagem foi removida do menu. Uploads agora são feitos

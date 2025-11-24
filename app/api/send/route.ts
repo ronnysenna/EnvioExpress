@@ -4,10 +4,11 @@ import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 import { checkPlanLimits, incrementUsage } from "@/lib/planLimits";
+import { trackEvent, EventNames } from "@/lib/analytics";
 
 export async function POST(req: Request) {
   try {
-    const { tenant } = await requireAuth();
+    const { tenant, user } = await requireAuth();
     const tenantId = tenant.id;
 
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
@@ -163,6 +164,19 @@ export async function POST(req: Request) {
       if (totalMessagesToSend > 0) {
         await incrementUsage(tenantId, "messages", totalMessagesToSend);
       }
+
+      // Track event de envio de mensagem
+      await trackEvent({
+        name: EventNames.MESSAGE_SENT,
+        tenantId,
+        userId: user.id,
+        properties: {
+          messageLength: message.length,
+          contactsCount: totalMessagesToSend,
+          hasImage: imagemPath !== "sem-imagem",
+          useGroups: Array.isArray(groupIds) && groupIds.length > 0,
+        },
+      });
 
       return NextResponse.json(
         { success: true, status: response.status, data: response.data },

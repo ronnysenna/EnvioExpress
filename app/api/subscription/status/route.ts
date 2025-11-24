@@ -71,12 +71,10 @@ export async function GET() {
     if (usagePercentages.images >= 80) warnings.push("images");
 
     return NextResponse.json({
-      subscription: {
-        id: subscription.id,
-        status: subscription.status,
-        currentPeriodStart: subscription.currentPeriodStart,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-      },
+      id: subscription.id,
+      status: subscription.status,
+      currentPeriodStart: subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd,
       plan: {
         id: subscription.plan.id,
         name: subscription.plan.name,
@@ -85,8 +83,8 @@ export async function GET() {
         currency: subscription.plan.currency,
         interval: subscription.plan.interval,
         features: subscription.plan.features,
+        limits,
       },
-      limits,
       usage,
       usagePercentages,
       warnings,
