@@ -34,12 +34,10 @@ function getJWTSecret(): string {
   return secret;
 }
 
-const JWT_SECRET = getJWTSecret();
-
 export function generateToken(
   payload: Omit<TokenPayload, "iat" | "exp">
 ): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJWTSecret(), {
     expiresIn: "7d",
     issuer: "envioexpress",
   });
@@ -47,9 +45,9 @@ export function generateToken(
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const decoded = jwt.verify(token, getJWTSecret()) as TokenPayload;
     return decoded;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
