@@ -1,0 +1,273 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Multi-tenant models
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  domain    String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Settings and configuration
+  settings Json?
+
+  // Relationships
+  users        TenantUser[]
+  contacts     Contact[]
+  groups       Group[]
+  images       Image[]
+  campaigns    Campaign[]
+  subscription Subscription?
+  invitations  Invitation[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Multi-tenant relationships
+  tenants   TenantUser[]
+  selection Selection?
+
+  @@map("users")
+}
+
+model TenantUser {
+  id       String     @id @default(cuid())
+  tenantId String
+  userId   String
+  role     TenantRole @default(USER)
+  joinedAt DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@map("tenant_users")
+}
+
+model Invitation {
+  id        String     @id @default(cuid())
+  email     String
+  role      TenantRole @default(USER)
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  token     String     @unique
+  expiresAt DateTime
+  createdAt DateTime   @default(now())
+
+  @@unique([email, tenantId])
+  @@map("invitations")
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  USER
+  VIEWER
+}
+
+model Contact {
+  id       String  @id @default(cuid())
+  nome     String
+  telefone String
+  email    String?
+
+  // Multi-tenant fields
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  groups      ContactGroup[]
+  messageLogs MessageLog[]
+
+  @@unique([tenantId, telefone])
+  @@map("contacts")
+}
+
+model Group {
+  id        String  @id @default(cuid())
+  nome      String
+  descricao String?
+
+  // Multi-tenant fields
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  contacts  ContactGroup[]
+
+  @@unique([tenantId, nome])
+  @@map("groups")
+}
+
+model ContactGroup {
+  id        String   @id @default(cuid())
+  contactId String
+  groupId   String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([contactId, groupId])
+  @@map("contact_groups")
+}
+
+model Image {
+  id       String @id @default(cuid())
+  url      String
+  filename String
+
+  // Multi-tenant fields
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("images")
+}
+
+model Selection {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String   @unique
+  selectedIds Json
+  updatedAt   DateTime @updatedAt
+
+  @@map("selections")
+}
+
+// Campaign and messaging models
+model Campaign {
+  id           String         @id @default(cuid())
+  name         String
+  message      String
+  imageUrl     String?
+  status       CampaignStatus @default(DRAFT)
+  scheduledFor DateTime?
+
+  // Multi-tenant fields
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messageLogs MessageLog[]
+
+  @@map("campaigns")
+}
+
+model MessageLog {
+  id            String        @id @default(cuid())
+  campaignId    String?
+  campaign      Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  contactId     String
+  contact       Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status        MessageStatus @default(PENDING)
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  failureReason String?
+
+  @@map("message_logs")
+}
+
+// Subscription and billing models
+model Plan {
+  id            String       @id @default(cuid())
+  name          String       @unique
+  description   String?
+  price         Int // Price in cents
+  currency      String       @default("BRL")
+  interval      PlanInterval
+  features      Json // Array of features
+  limits        Json // Usage limits
+  stripePriceId String?      @unique
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  tenantId             String             @unique
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId               String
+  plan                 Plan               @relation(fields: [planId], references: [id])
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
+
+// Usage tracking for billing
+model UsageMetric {
+  id        String   @id @default(cuid())
+  tenantId  String
+  metric    String // e.g., "contacts", "messages", "api_requests"
+  value     Int
+  period    String // e.g., "2024-11", monthly tracking
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, metric, period])
+  @@map("usage_metrics")
+}
+
+// Enums
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum PlanInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  UNPAID
+  INCOMPLETE
+}

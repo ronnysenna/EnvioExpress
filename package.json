@@ -1,0 +1,50 @@
+{
+  "name": "envio-massa",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset && npm run db:seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.916.0",
+    "@prisma/client": "^6.18.0",
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "busboy": "^1.6.0",
+    "formidable": "^3.5.4",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.546.0",
+    "next": "16.0.0",
+    "papaparse": "^5.5.3",
+    "prisma": "^6.18.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-window": "^2.2.1",
+    "styled-jsx": "^5.1.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/formidable": "^3.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/papaparse": "^5.3.16",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}
