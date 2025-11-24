@@ -1,18 +1,22 @@
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_API_KEY) {
-  throw new Error("STRIPE_API_KEY is required");
-}
+export function getStripeInstance(): Stripe {
+  if (!process.env.STRIPE_API_KEY) {
+    throw new Error("STRIPE_API_KEY is required");
+  }
 
-export const stripe = new Stripe(process.env.STRIPE_API_KEY, {
-  apiVersion: "2025-11-17.clover",
-  typescript: true,
-});
+  return new Stripe(process.env.STRIPE_API_KEY, {
+    apiVersion: "2025-11-17.clover",
+    typescript: true,
+  });
+}
 
 export const getStripeCustomerId = async (
   email: string,
   name?: string
 ): Promise<string> => {
+  const stripe = getStripeInstance();
+
   // Buscar customer existente
   const customers = await stripe.customers.list({
     email,

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripeInstance } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 import type Stripe from "stripe";
 import { SubscriptionStatus } from "@prisma/client";
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const stripe = getStripeInstance();
     const event = stripe.webhooks.constructEvent(
       body,
       signature,

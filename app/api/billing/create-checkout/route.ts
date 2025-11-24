@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/serverAuth";
-import { stripe } from "@/lib/stripe";
+import { getStripeInstance } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     if (existingSubscription?.stripeCustomerId) {
       stripeCustomerId = existingSubscription.stripeCustomerId;
     } else {
+      const stripe = getStripeInstance();
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name || user.username,
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar sessão de checkout
+    const stripe = getStripeInstance();
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       mode: "subscription",
