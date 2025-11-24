@@ -12,8 +12,6 @@ function getJWTSecret(): string {
   return secret;
 }
 
-const JWT_SECRET = getJWTSecret();
-
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
 const IS_PROD = process.env.NODE_ENV === "production";
 
@@ -97,7 +95,7 @@ export async function POST(req: Request) {
       currentTenantId: currentTenant.id,
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, {
+    const token = jwt.sign(tokenPayload, getJWTSecret(), {
       expiresIn: "7d",
       issuer: "envioexpress",
     });

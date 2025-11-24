@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-import { TenantRole, User, Tenant } from "@prisma/client";
+import { TenantRole } from "@prisma/client";
+import type { User, Tenant } from "@prisma/client";
 import prisma from "./prisma";
 
 function getJWTSecret(): string {
@@ -10,8 +11,6 @@ function getJWTSecret(): string {
   }
   return secret;
 }
-
-const JWT_SECRET = getJWTSecret();
 
 export interface AuthContext {
   user: User;
@@ -47,7 +46,7 @@ export async function verifyAuth(): Promise<AuthContext | null> {
     const token = await getAuthToken();
     if (!token) return null;
 
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const decoded = jwt.verify(token, getJWTSecret()) as TokenPayload;
     if (!decoded.currentTenantId) return null;
 
     // Verificar se usuário existe
