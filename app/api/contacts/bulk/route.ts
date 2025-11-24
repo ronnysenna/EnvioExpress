@@ -1,30 +1,23 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireUser } from "@/lib/serverAuth";
+import { requireAuth } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const contacts: { nome: string; telefone: string }[] = body.contacts || [];
+    const contacts: { nome: string; telefone: string; email?: string }[] =
+      body.contacts || [];
 
     if (!Array.isArray(contacts) || contacts.length === 0) {
       return NextResponse.json(
         { inserted: 0, updated: 0, message: "Nenhum contato recebido" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // require authenticated user
-    let user = undefined as unknown;
-    try {
-      user = await requireUser();
-    } catch (e: unknown) {
-      console.warn("Unauthorized bulk import attempt", String(e));
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userObj = user as { id: number };
-    const userId = userObj.id;
+    // require authenticated user with tenant
+    const { tenant } = await requireAuth();
 
     let inserted = 0;
     let updated = 0;
@@ -37,17 +30,27 @@ export async function POST(req: Request) {
 
       try {
         const existing = await prisma.contact.findUnique({
-          where: { telefone },
+          where: {
+            tenantId_telefone: {
+              tenantId: tenant.id,
+              telefone,
+            },
+          },
         });
         if (existing) {
           await prisma.contact.update({
             where: { id: existing.id },
-            data: { nome: c.nome, userId },
+            data: { nome: c.nome, email: c.email },
           });
           updated++;
         } else {
           await prisma.contact.create({
-            data: { nome: c.nome, telefone, userId },
+            data: {
+              nome: c.nome,
+              telefone,
+              email: c.email,
+              tenantId: tenant.id,
+            },
           });
           inserted++;
         }

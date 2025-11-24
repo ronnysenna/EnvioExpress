@@ -8,6 +8,7 @@ import {
   Tags,
   Users,
   X,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +19,7 @@ const menuItems = [
   { href: "/contatos", label: "Contatos", icon: Users },
   { href: "/grupos", label: "Grupos", icon: Tags },
   { href: "/imagem", label: "Upload de Imagem", icon: ImageIcon },
+  { href: "/plans", label: "Planos e Cobrança", icon: CreditCard },
   // Nota: a página de upload de imagem foi removida do menu. Uploads agora são feitos
   // diretamente na página Enviar Mensagem. A rota de API /api/images permanece ativa.
 ];

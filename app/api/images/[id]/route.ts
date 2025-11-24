@@ -2,29 +2,27 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireUser } from "@/lib/serverAuth";
+import { requireAuth } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const resolvedParams = await params;
-    const user = await requireUser();
-    const id = Number(resolvedParams.id);
-    if (!id)
-      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    const { tenant } = await requireAuth();
+    const id = resolvedParams.id;
 
     const image = await prisma.image.findUnique({ where: { id } });
     if (!image)
       return NextResponse.json(
         { error: "Imagem não encontrada" },
-        { status: 404 },
+        { status: 404 }
       );
 
     // Only owner can delete
-    if (image.userId !== user.id) {
+    if (image.tenantId !== tenant.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
@@ -48,7 +46,7 @@ export async function DELETE(
             const key = image.url.split(`/${S3_BUCKET}/`).pop();
             if (key)
               await s3.send(
-                new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: key }),
+                new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: key })
               );
           } catch (s3err) {
             // ignore s3 delete errors

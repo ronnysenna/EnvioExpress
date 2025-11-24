@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireUser } from "@/lib/serverAuth";
+import { requireAuth } from "@/lib/serverAuth";
 import { getErrorMessage } from "@/lib/utils";
 
 export async function GET() {
   try {
-    const user = await requireUser();
-    const userId = user.id;
+    const { tenant } = await requireAuth();
 
     const groups = await prisma.group.findMany({
-      where: { userId },
+      where: { tenantId: tenant.id },
       select: {
         id: true,
         nome: true,

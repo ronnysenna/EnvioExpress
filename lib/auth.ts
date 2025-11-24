@@ -26,10 +26,15 @@ export interface TokenPayload {
   exp?: number;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not set");
+function getJWTSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is not set");
+  }
+  return secret;
 }
+
+const JWT_SECRET = getJWTSecret();
 
 export function generateToken(
   payload: Omit<TokenPayload, "iat" | "exp">
